@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Fw16Log dt-start="2018-01-18T00:01:01" dt-end="2018-01-18T23:59:12" error-count="6">
+  <Session dt-start="2018-01-18T00:01:01" dt-end="2018-01-18T23:59:12" >
+    <Fw16 version="1.2.6296.29040" path="C:\GISS\Fw16.dll"/>
+    <Ecr model="POSprint FP510-Ф" firmware="h05f011s180d31032017" serial="025510902837498" fs-id="999982346876"/>
+    <Shifts>
+      <Shift closed="2018-01-18T08:06:01">
+        ...
+      </Shift>
+      <Shift opened="2018-01-18T09:06:01" closed="2018-01-18T22:06:01">
+        <Documents>
+          <Receipt dt-start="2018-01-18T09:06:01" dt-end="2018-01-18T09:06:02" fiscal-number="12345" sign="Income" total="123.12" cash="0.0" electron="123.12" item-count="3"/>
+          <Receipt dt-start="2018-01-18T09:07:01" dt-end="2018-01-18T09:07:02" fiscal-number="12346" sign="IncomeBack" total="123.12" cash="123.12" electron="0.0" item-count="1"/>
+          <Receipt dt-start="2018-01-18T09:08:01" sign="Income" total="123.12" cash="0.0" electron="123.12" item-count="3">
+            <Error dt="2018-01-18T13:06:01" cmd="DOCEND" code="11" text="Неверные параметры">
+              <Message>....</Message>
+            </Error>
+            <Error>...</Error>
+          </Receipt>
+          <Nonfiscal titla="Отчёт"/>
+          ...
+        </Documents>
+        <Summary fd-count="3" nfd-count="1" >
+          <Income cash="432.36" electron="123.12"/>
+          <IncomeBack cash="123.12" electron="0.0"/>
+        </Summary>>
+      </Shift>
+      <Shift opened="2018-01-18T23:06:01">
+        ...
+      </Shift>
+    </Shifts>
+  </Session>
+</Fw16Log>
