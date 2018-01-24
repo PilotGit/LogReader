@@ -24,8 +24,10 @@ namespace WindowsFormsApp1
 
         private void startXML()                                                                                 //создание xml файла
         {
+            int count;
             nameXML = Directory.GetFiles(@"save\", "newXML*").Last();
-            MessageBox.Show( nameXML = Regex.Replace(nameXML, "[0-9]+", string.Empty));
+            count = 1 + Convert.ToInt32(Regex.Replace(nameXML, "[^0-9]+", string.Empty));
+            MessageBox.Show( nameXML = "newXML "+(count));
             
         }
 
