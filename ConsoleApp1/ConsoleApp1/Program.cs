@@ -453,9 +453,17 @@ namespace ConsoleApp1
         {
             try
             {
+                Directory.EnumerateDirectories("save");
+            }
+            catch
+            {
+                Directory.CreateDirectory(@"save");
+            }
+            try
+            {
                 File.OpenRead(file);
                 nameXML = file;
-                Console.Write(nameXML = @directory + file +".xml");
+                Console.Write(nameXML = ((directory=="")?@"save\\":@directory) + file +".xml");
             }
             catch { Console.WriteLine("файл не существует");nameXML = "false"; }
             
@@ -476,8 +484,8 @@ namespace ConsoleApp1
                         File.Delete("save\\newxml.xml.xml");
                     }
                     catch { }
-                    NameOfNewXML("save\\newxml.xml");
-                    directory = "FP180119.log";
+                    NameOfNewXML("FP180119.log");
+                    directory = "save";
                 }   
                 else
                 {
@@ -526,34 +534,9 @@ namespace ConsoleApp1
                         formatter.Serialize(fs, fw16Log);
                     }
                 }
+                
                 Console.ReadKey();
             }
         }
     }
 }
-
-
-/*XmlDocument XMLdoc;
-static string nameXML;
-
-static void CreatXML()                                                                                 //создание xml файла с базовым именем NewXML
-{
-    int count;
-    nameXML = Directory.GetFiles(@"save\", "newXML*").Last();                                          //cчитывание номера последного элемента с базовым именем
-    count = 1 + Convert.ToInt32(Regex.Replace(nameXML, "[^0-9]+", string.Empty));
-    nameXML = @"save\" + "newXML " + (count) + ".xml";
-    XmlTextWriter textWritter = new XmlTextWriter(nameXML, Encoding.UTF8);
-    textWritter.WriteStartDocument();
-    textWritter.Close();
-}
-static void Main(string[] args)
-{
-    try
-    {
-        CreatXML();
-    }
-    catch (Exception ex) { Console.WriteLine(ex.Message); }
-
-    Console.ReadKey();
-}*/
-
