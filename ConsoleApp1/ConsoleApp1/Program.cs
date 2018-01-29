@@ -478,7 +478,22 @@ namespace ConsoleApp1
             //while (directory != "")                                               //зацикливание
             {
                 if (directory == "def")                                                                 //Тестовый вариант пути к логам
-                {
+                {                                                                                       //Все старания ради лени
+                    try
+                    {
+                        File.OpenRead("FP180119.log");
+                    }
+                    catch
+                    {
+                        Console.Clear();
+                        bool flag = true;
+                        while (flag)
+                        {
+                            Console.WriteLine("Введите путь к файлу");
+                            try { File.Copy(Console.ReadLine(),(Directory.GetCurrentDirectory()+"\\FP180119.log"),true); flag = false;  }
+                            catch { }
+                        }
+                    }
                     try
                     {
                         File.Delete("save\\newxml.xml.xml");
