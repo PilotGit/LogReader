@@ -457,7 +457,7 @@ namespace ConsoleApp1
                 nameXML = file;
                 Console.Write(nameXML = @directory + file +".xml");
             }
-            catch { Console.WriteLine("файл не существует");nameXML = "false"; }
+            catch { Console.WriteLine("файл не существует"); }
             
         }
 
@@ -466,19 +466,19 @@ namespace ConsoleApp1
         {
             string directory="def";
             Console.Write("Укажите путь к файлу: ");
-            //directory = Console.ReadLine();                                       // получить путь к файлу
-            //while (directory != "")                                               //зацикливание
+            //directory = Console.ReadLine();
+            //while (directory != "")
             {
                 if (directory == "def")                                                                 //Тестовый вариант пути к логам
                 {
                     try
                     {
-                        File.Delete("save\\newxml.xml.xml");
+                        File.Delete("C:\\Users\\Gorionov\\source\\repos\\LogReader\\ConsoleApp1\\ConsoleApp1\\bin\\Debug\\save\\newxml.xml.xml");
                     }
                     catch { }
-                    NameOfNewXML("save\\newxml.xml");
-                    directory = "FP180119.log";
-                }   
+                    NameOfNewXML("C:\\Users\\Gorionov\\source\\repos\\LogReader\\ConsoleApp1\\ConsoleApp1\\bin\\Debug\\save\\newxml.xml");
+                    directory = "C:\\Users\\Gorionov\\source\\repos\\LogReader\\FP180119.log";
+                }
                 else
                 {
                     NameOfNewXML(directory);
@@ -517,16 +517,15 @@ namespace ConsoleApp1
                     fw16Log.NExtShift().opened = "123test";
                 }
                 //КОНЕЦ тестирования
-                if (nameXML != "false")
-                {
-                    XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
 
-                    using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
-                    {
-                        formatter.Serialize(fs, fw16Log);
-                    }
+                XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
+
+                using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
+                {
+                    formatter.Serialize(fs, fw16Log);
                 }
-                Console.ReadKey();
+
+                //Console.ReadKey();
             }
         }
     }
