@@ -12,7 +12,7 @@ namespace ConsoleApp1
     /// <summary>
     /// добовление сообщения об ошибки
     /// </summary>
-    [Serializable]  
+    [Serializable]
     public class Error
     {
         /// <summary>
@@ -39,6 +39,8 @@ namespace ConsoleApp1
         /// дополнительная информация об ошибке 
         /// </summary>
         public string Message;
+        public static ushort count;
+        public Error() { count++; }
     }
     /// <summary>
     /// Класс созданный только ради наследования ^-^
@@ -156,7 +158,15 @@ namespace ConsoleApp1
         /// <returns>объект смены</returns>
         public Shift currentShift()
         {
-           return Shift[nExt - 1];
+            try
+            {
+                return Shift[nExt - 1];
+            }
+            catch 
+            {
+                return NExtShift();
+            }
+           
         }
 
         public Fw16Log() { }
@@ -202,6 +212,8 @@ namespace ConsoleApp1
         /// </summary>
         [XmlAttribute]
         public string path { get; set; }
+        [XmlIgnore]
+        public bool set = false;
 
         public Fw16()
         {
@@ -223,16 +235,14 @@ namespace ConsoleApp1
         /// Пример: "h05f011s180d31032017"
         /// </summary>
         [XmlAttribute]
-        public string firmvare { get; set; }
-        /// <summary>
-        /// добовление сообщения об ошибки
-        /// </summary>
-        public Error error;
+        public string firmware { get; set; }
+        [XmlIgnore]
+        public bool setFirmware = false;
 
         public Ecr()
         {
             model = "notSet";
-            firmvare = "notSet";
+            firmware = "notSet";
         }
     }
     /// <summary>
@@ -246,12 +256,12 @@ namespace ConsoleApp1
         /// Атрибут содержащий время начала смены
         /// </summary>
         [XmlAttribute]
-        public string opened;
+        public string opened="notSET";
         /// <summary>
         /// Атрибут конца смены
         /// </summary>
         [XmlAttribute]
-        public string closed;
+        public string closed="notSET";
         /// <summary>
         /// Тег содержащий информацию о типе документа и его содержание 
         /// </summary>
@@ -260,10 +270,6 @@ namespace ConsoleApp1
         /// Тег содержащий чек и суммы по итогу смены 
         /// </summary>
         public Summary Summary;
-        /// <summary>
-        /// добовление сообщения об ошибки
-        /// </summary>
-        public Error error;
 
         public Shift()
         {
@@ -276,44 +282,23 @@ namespace ConsoleApp1
     public class Documents : Errors
     {
         /// <summary>
-        /// Чек с его атрибутами 
+        /// Чек с его атрибутами ; нельзя использовать 
         /// </summary>
         [XmlElement]
         public List<Receipt> Receipt;
         /// <summary>
-        /// добовление сообщения об ошибки
+        /// Не фискальный Чек с его атрибутами ; нельзя использовать 
         /// </summary>
         [XmlElement]
-        public List<Error> Error;
-
-        //созданеи Сообщения об ошибке
-        private ushort nExtError = 0;
-        private bool flagError = false;
-        /// <summary>
-        /// создание нового сообщения об ошибке
-        /// </summary>
-        /// <returns>объект ошибки</returns>
-        public Error NExtError()
-        {
-            if (!flagError) { flagError = true; Error = new List<Error>(); }
-            Error.Add(new Error());
-            nExtError++;
-            return Error[nExtError - 1];
-        }
-        /// <summary>
-        /// получение текущего объекта ошибки
-        /// </summary>
-        /// <returns>объект ошибки</returns>
-        public Error currentError()
-        {
-            return Error[nExtError - 1];
-        }
+        public List<Nonfiscal> Nonfiscal;
+        [XmlIgnore]
+        public string currentDoc;
 
         //созданеи чека
         private ushort nExt = 0;
         private bool flagShift = false;
         /// <summary>
-        /// создание нового чека; нельзя использовать 
+        /// создание нового чека
         /// </summary>
         /// <returns>объект чека</returns>
         public Receipt NExtReceipt()
@@ -327,11 +312,84 @@ namespace ConsoleApp1
         /// получение текущего объекта чека
         /// </summary>
         /// <returns>объект чека</returns>
-        public Receipt currentShift()
+        public Receipt currentReceipt()
         {
-            return Receipt[nExt - 1];
+            try
+            {
+                return Receipt[nExt - 1];
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+
+        //созданеи Не фискального чека
+        private ushort NonfiscalnExt = 0;
+        private bool NonfiscalflagShift = false;
+        /// <summary>
+        /// создание нового чека
+        /// </summary>
+        /// <returns>объект Не фискального чека</returns>
+        public Nonfiscal NExtNonfiscal()
+        {
+            if (!NonfiscalflagShift) { NonfiscalflagShift = true; Nonfiscal = new List<Nonfiscal>(); }
+            Nonfiscal.Add(new Nonfiscal());
+            NonfiscalnExt++;
+            return Nonfiscal[NonfiscalnExt - 1];
+        }
+        /// <summary>
+        /// получение текущего объекта Не фискального чека
+        /// </summary>
+        /// <returns>объект Не фискального чека</returns>
+        public Nonfiscal currentNonfiscal()
+        {
+            return Nonfiscal[NonfiscalnExt - 1];
         }
     }
+
+    [Serializable]
+    public class Nonfiscal : Errors
+    {
+        /// <summary>
+        /// Начало документа
+        /// </summary>
+        [XmlAttribute("dt-start")]
+        public string dtStart;
+        /// <summary>
+        /// Конец документа
+        /// </summary>
+        [XmlAttribute("dt-end")]
+        public string dtEnd;
+        /// <summary>
+        /// признак чека(приход, уход...)
+        /// </summary>
+        [XmlAttribute("sign")]
+        public string sign;
+        /// <summary>
+        /// текст в обработке
+        /// </summary>
+        [XmlAttribute]
+        public string Title;
+        /// <summary>
+        /// суммa чека
+        /// </summary>
+        [XmlAttribute("total")]
+        public decimal total;
+        /// <summary>
+        /// наличные 
+        /// </summary>
+        [XmlAttribute("cash")]
+        public decimal cash;
+        /// <summary>
+        /// электронные 
+        /// </summary>
+        [XmlAttribute("electron")]
+        public decimal electron;
+
+    }
+
     /// <summary>
     /// Чек содержащий атрибуты: начала\конца чека, фскального номера, признак чека(приход, уход...),
     /// сумму чека, внесенную сумму наличными\электронными, количество товаров)
@@ -363,26 +421,24 @@ namespace ConsoleApp1
         /// суммa чека
         /// </summary>
         [XmlAttribute("total")]
-        public string total;
+        public decimal total;
         /// <summary>
         /// наличные 
         /// </summary>
         [XmlAttribute("cash")]
-        public string cash;
+        public decimal cash;
         /// <summary>
         /// электронные 
         /// </summary>
         [XmlAttribute("electron")]
-        public string electron;
+        public decimal electron;
         /// <summary>
         /// Кол-во товара 
         /// </summary>
         [XmlAttribute("item-count")]
-        public string itemСount;
-        /// <summary>
-        /// добовление сообщения об ошибки
-        /// </summary>
-        public Error error;
+        public decimal itemСount;
+        [XmlIgnore]
+        public bool end=true;
     }
     /// <summary>
     /// сумма в конце смены; атрибуты кол-во фискальных\нефискальных докуметов
@@ -394,12 +450,12 @@ namespace ConsoleApp1
         /// кол-во фискальных докуметов 
         /// </summary>
         [XmlAttribute("fd-count")]
-        public string fdСount;
+        public decimal fdСount;
         /// <summary>
         /// кол-во нефискальных докуметов 
         /// </summary>
         [XmlAttribute("nfd-count")]
-        public string nfdСount;
+        public decimal nfdСount;
         /// <summary>
         /// сумма по чеку прихода
         /// </summary>
@@ -408,7 +464,8 @@ namespace ConsoleApp1
         /// сумма по чеку возврата прихода
         /// </summary>
         public IncomeBack IncomeBack;
-
+        public Outcome Outcome;
+        public OutcomeBack OutcomeBack;
     }
 
     [Serializable]
@@ -418,12 +475,12 @@ namespace ConsoleApp1
         /// сумма наличных денег
         /// </summary>
         [XmlAttribute("cash")]
-        public string cash;
+        public decimal cash;
         /// <summary>
         /// сумма электронных денег 
         /// </summary>
         [XmlAttribute("electron")]
-        public string electron;
+        public decimal electron;
     }
 
     [Serializable]
@@ -433,55 +490,569 @@ namespace ConsoleApp1
         /// сумма наличных денег
         /// </summary>
         [XmlAttribute("cash")]
-        public string cash;
+        public decimal cash;
         /// <summary>
         /// сумма электронных денег 
         /// </summary>
         [XmlAttribute("electron")]
-        public string electron;
+        public decimal electron;
     }
 
-
-    class Program
+    [Serializable]
+    public class Outcome : Errors
     {
-        static string nameXML=@"save/newxml.xml";                                                                                     //Имя нового файла
-
         /// <summary>
-        /// Cоздание нового имени файла по имени полученного файла + ".XML"
+        /// сумма наличных денег
         /// </summary>
-        static void NameOfNewXML(string file,string directory="")                                                                                 //Получение нового имени базовым именем NewXML
+        [XmlAttribute("cash")]
+        public decimal cash;
+        /// <summary>
+        /// сумма электронных денег 
+        /// </summary>
+        [XmlAttribute("electron")]
+        public decimal electron;
+    }
+
+    [Serializable]
+    public class OutcomeBack : Errors
+    {
+        /// <summary>
+        /// сумма наличных денег
+        /// </summary>
+        [XmlAttribute("cash")]
+        public decimal cash;
+        /// <summary>
+        /// сумма электронных денег 
+        /// </summary>
+        [XmlAttribute("electron")]
+        public decimal electron;
+    }
+
+    [Serializable]
+    public class tree
+    {
+        [XmlElement("testB")]
+        public List<Branch> branch;
+        
+        private ushort nExt = 0;
+        private bool flagbranch = false;
+        public Branch NExtbranch()
+        {
+            if (!flagbranch) { flagbranch = true; branch = new List<Branch>(); }
+            branch.Add(new Branch());
+            nExt++;
+            return branch[nExt - 1];
+        }
+        public Branch currentShift()
         {
             try
             {
-                Directory.EnumerateDirectories("save");
+                return branch[nExt - 1];
             }
             catch
             {
-                Directory.CreateDirectory(@"save");
+                return NExtbranch();
             }
+
+        }
+    }
+
+    [Serializable]
+    public class Branch
+    {
+        [XmlElement]
+        public string branch;
+    }
+
+    class Program
+    {
+        const string REGTime = @"\d+:\d+:\d+\.\d+";
+        static string nameXML=@"save/newxml.xml";
+
+        static public decimal progresprogressbar(StreamReader fileStream,decimal count)
+        {
+            while ((Convert.ToDecimal(fileStream.BaseStream.Length / 50))*count<Convert.ToDecimal(fileStream.BaseStream.Position))
+            {
+                count++;
+                Console.Write("|");
+            }
+            
+            return count;
+        }
+        /// <summary>
+        /// Cоздание нового имени файла по имени полученного файла + ".XML"
+        /// </summary>
+        static void NameOfNewXML(string file,string directory = "")                                                                                 //Получение нового имени базовым именем NewXML
+        {
+            
+            Directory.CreateDirectory((directory==""?"":directory+ "\\") +"save");
+            
             try
             {
                 File.OpenRead(file);
                 nameXML = file;
-                Console.Write(nameXML = ((directory=="")?@"save\\":@directory) + file +".xml");
+                Console.WriteLine(nameXML = ((directory == "")?"": @directory)+ @"save\" + Regex.Match(file, @"[^\\]*log").ToString() +".xml");
             }
             catch { Console.WriteLine("файл не существует");nameXML = "false"; }
             
         }
+        /// <summary>
+        /// Возврат номера команды в случае нахождения команды
+        /// </summary>
+        /// <param name="getCod"> строка для поиска команды</param>
+        /// <returns>пустую строку либо код команды</returns>
+        static string GetCod(string getCod,Fw16Log fw16Log)
+        {
+            if (!fw16Log.Environment.Fw16.set)                                      //чтение из заголовка информации о .dll
+                if(getCod.IndexOf("=== Старт") > 0)
+                {
+                    fw16Log.Environment.Fw16.path=(Regex.Match(getCod, "[^.dll]*.dll")).ToString();
+                    fw16Log.Environment.Fw16.version = (Regex.Match(getCod, @"\d+\.\d+\.\d+\.\d+")).ToString();
+                    fw16Log.Environment.Fw16.set = true;
+                }
+            if (getCod.IndexOf("Команда FW16: [") <= 0)
+                return null;
+            else
+            {
+                getCod= getCod.Remove(0, getCod.IndexOf("Команда FW16: [") + 15);  //15-кол-во символов искомой строки
+                return getCod.Remove(3);
+            }    
+        }
+        /// <summary>
+        /// проверка на ошибку и возврат строки в случае отсутствия ошибки
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string StringOrError(string strTic, StreamReader streamReader, dynamic obj)
+        {
+            string name = Regex.Match(strTic, @"\w* \(.*\)").ToString();    //получение названия команды из скобок
+            while (((strTic = streamReader.ReadLine()).IndexOf("----------")) ==-1)
+            {
+                if(strTic.IndexOf("Код ответа FW16: [0] OK") >= 0)
+                {
+                    return strTic;
+                }
+                else
+                {
+                    if (strTic.IndexOf("Код ответа FW16: [0] OK") ==-1 && strTic.IndexOf("Код ответа FW16: [") >= 0)
+                    {
+                        Match match = Regex.Match(strTic, @"([\d:]*.[\d]*) Код ответа FW16: \[(.*)\]\s+(.*)");
+                        obj.NExtError().cmd = name;
+                        obj.currentError().code = match.Groups[2].ToString();
+                        obj.currentError().text = match.Groups[3].ToString();
+                        obj.currentError().dt = match.Groups[1].ToString();
+                        while (((strTic = streamReader.ReadLine()).IndexOf("----------------------")) == -1) { obj.currentError().Message += Regex.Replace(strTic, "\0",string.Empty)+ "\r\n"; }
+                        return null;
+                    }
+                }
+            }
+            return null;
+        }
+        /// <summary>
+        /// получение firmware
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_122(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            var obj = fw16Log.Environment.Ecr;
+            if(!obj.setFirmware)
+            if ((StringOrError(strTic, streamReader, obj)) != null)
+            {
+                strTic = streamReader.ReadLine();
+                obj.firmware = ((Regex.Match(strTic, @" value=([\w]*)").Groups[1]).ToString());
+                obj.setFirmware = true;
+                return strTic;
+            }
+            return null;
+        }
 
+        /// <summary>
+        /// получение Model
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_121(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            var obj = fw16Log.Environment.Ecr;
+                if ((StringOrError(strTic, streamReader, obj)) != null)
+                {
+                    strTic = streamReader.ReadLine();
+                    strTic = streamReader.ReadLine();                                               //переход на строку с моделью 
+                    obj.model = ((Regex.Match(strTic, @"Model=(.*Ф)").Groups[1]).ToString());
+                    return strTic;
+                }
+            return null;
+        }
+
+        /// <summary>
+        /// получение начала смены
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_400(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            var obj = fw16Log.NExtShift();
+            if ((strTic = StringOrError(strTic, streamReader, obj)) != null)
+            {
+                obj.opened = ((Regex.Match(strTic, @"([\d:]*.[\d]*) Код").Groups[1]).ToString());
+                return strTic;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// получение конца смены
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_401(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            var obj = fw16Log.currentShift();
+            try
+            {
+                if (fw16Log.currentShift().Documents != null)
+                    if (fw16Log.currentShift().Documents.currentReceipt() != null)
+                    {
+                        if (fw16Log.currentShift().Documents.currentReceipt() != null)
+                            if (fw16Log.currentShift().Documents.currentReceipt().dtEnd == null)
+                                fw16Log.currentShift().Documents.currentReceipt().NExtError().Message = "Документ не закрыт!!!";
+                        if (fw16Log.currentShift().Documents.currentNonfiscal() != null)
+                            if (fw16Log.currentShift().Documents.currentReceipt().dtEnd == null)
+                                fw16Log.currentShift().Documents.currentNonfiscal().NExtError().Message = "Документ не закрыт!!!";
+                    }
+            }
+            catch { }
+            if ((strTic = StringOrError(strTic, streamReader, obj)) != null)
+            {
+               
+                obj.closed = ((Regex.Match(strTic, @"([\d:]*.[\d]*) Код").Groups[1]).ToString());
+                return strTic;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// получение начала документа и его типа
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_402(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+             if (fw16Log.currentShift().Documents == null)
+                fw16Log.currentShift().Documents = new Documents();
+            var obj = fw16Log.currentShift().Documents.currentReceipt();
+            if (obj != null)
+                if (obj.dtEnd == null)
+                {
+                    obj.NExtError().Message = "Документ не закрыт!!!";
+                }
+            obj = fw16Log.currentShift().Documents.NExtReceipt();
+            obj.end = false;
+            obj.dtStart = ((Regex.Match(strTic, @"\d+:\d+:\d+\.\d+")).ToString());
+            strTic = streamReader.ReadLine();
+            strTic = streamReader.ReadLine();
+            obj.sign = ((Regex.Match(strTic, @"Operation=(\w+)").Groups[1]).ToString());
+            fw16Log.currentShift().Documents.currentDoc = "Receipt";
+            if ((strTic = StringOrError(strTic, streamReader, obj)) != null)
+            {
+                return strTic;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// получение последних данных о товаре в чеке 
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_403(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            try
+            {
+                var obj = fw16Log.currentShift().Documents.currentReceipt();
+                if ((strTic = StringOrError(strTic, streamReader, obj)) != null)
+                {
+                    strTic = streamReader.ReadLine();                                              //переход на строку 
+                    obj.itemСount = Convert.ToDecimal((Regex.Match(strTic, @"Position=([0-9]*)").Groups[1]).ToString());
+                    strTic = streamReader.ReadLine();
+                    strTic = streamReader.ReadLine();
+                    strTic = streamReader.ReadLine();
+                    obj.total = Convert.ToDecimal((Regex.Match(strTic, @"Total=([0-9]*)").Groups[1]).ToString());
+                    strTic = StringOrError(strTic, streamReader, obj);                    
+                }
+            return null;
+            }
+            catch
+            {
+                fw16Log.NExtError().dt= ((Regex.Match(strTic, REGTime)).ToString());
+                fw16Log.currentError().Message = "Поврежденный лог!(403)";
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// закрытие чека
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_407(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            try
+            {
+                var obj = fw16Log.currentShift().Documents.currentReceipt();
+                if ((strTic = StringOrError(strTic, streamReader, obj)) != null)
+                {
+                    obj.dtEnd = ((Regex.Match(strTic, REGTime)).ToString());
+                    if (fw16Log.currentShift().Summary == null) fw16Log.currentShift().Summary = new Summary();
+                    switch (obj.sign)
+                    {
+                        case "Income":
+                            if (fw16Log.currentShift().Summary.Income == null) fw16Log.currentShift().Summary.Income = new Income();
+                            fw16Log.currentShift().Summary.Income.cash += obj.cash;
+                            fw16Log.currentShift().Summary.Income.electron += obj.electron;
+                            break;
+                        case "IncomeBack":
+                             if (fw16Log.currentShift().Summary.IncomeBack == null) fw16Log.currentShift().Summary.IncomeBack = new IncomeBack();
+                            fw16Log.currentShift().Summary.IncomeBack.cash += obj.cash;
+                            fw16Log.currentShift().Summary.IncomeBack.electron += obj.electron;
+                            break;
+                        case "OutcomeBack":
+                            if (fw16Log.currentShift().Summary.OutcomeBack == null) fw16Log.currentShift().Summary.OutcomeBack = new OutcomeBack();
+                            fw16Log.currentShift().Summary.OutcomeBack.cash += obj.cash;
+                            fw16Log.currentShift().Summary.OutcomeBack.electron += obj.electron;
+                            break;
+                        case "Outcome":
+                            if (fw16Log.currentShift().Summary.Outcome == null) fw16Log.currentShift().Summary.Outcome = new Outcome();
+                            fw16Log.currentShift().Summary.Outcome.cash += obj.cash;
+                            fw16Log.currentShift().Summary.Outcome.electron += obj.electron;
+                            break;
+                        default:
+                            break;
+                    }
+                    fw16Log.currentShift().Summary.fdСount += 1;
+                    return strTic;
+                }
+                return null;
+            }
+            catch
+            {
+                fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
+                fw16Log.currentError().Message = "Поврежденный лог!(407)";
+                return null;
+            }
+        }
+        /// <summary>
+        /// Прирывание чека 
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_408(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            try
+            {
+                fw16Log.currentShift().Documents.currentDoc = null;
+                //var obj = fw16Log.currentShift().Documents.currentReceipt();
+                if (fw16Log.currentShift().Documents.currentReceipt() != null)
+                {
+                    if (fw16Log.currentShift().Documents.currentReceipt().dtEnd == null)
+                    {
+                        fw16Log.currentShift().Documents.currentReceipt().dtEnd = ((Regex.Match(strTic, REGTime)).ToString());
+                        fw16Log.currentShift().Documents.currentReceipt().NExtError().Message = "ABORT";
+                        fw16Log.currentShift().Documents.currentReceipt().currentError().dt = ((Regex.Match(strTic, REGTime)).ToString());
+                        strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentReceipt());
+                        return null;
+                    }
+                }
+                if (fw16Log.currentShift().Documents.currentNonfiscal() != null)
+                    if (fw16Log.currentShift().Documents.currentNonfiscal().dtEnd == null)
+                    {
+                        fw16Log.currentShift().Documents.currentNonfiscal().dtEnd = ((Regex.Match(strTic, REGTime)).ToString());
+                        fw16Log.currentShift().Documents.currentNonfiscal().NExtError().Message = "ABORT";
+                        fw16Log.currentShift().Documents.currentNonfiscal().currentError().dt = ((Regex.Match(strTic, REGTime)).ToString());
+                        strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentNonfiscal());
+                        return null;
+                    }
+                if (fw16Log.currentShift().Documents.currentReceipt().dtStart == null && fw16Log.currentShift().Documents.currentNonfiscal().dtStart == null)
+                {
+                    fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
+                    fw16Log.currentError().Message = "Поврежденный лог!(408f)";
+                    return null;
+                }
+                return null;
+            }
+            catch
+            {
+                fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
+                fw16Log.currentError().Message = "Поврежденный лог!(408b)";
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Открыть нефискальный документ
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_420(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            if (fw16Log.currentShift().Documents == null) fw16Log.currentShift().Documents = new Documents();
+            fw16Log.currentShift().Documents.NExtNonfiscal().dtStart= ((Regex.Match(strTic, REGTime)).ToString());
+            fw16Log.currentShift().Documents.currentDoc = "Nonfiscal";
+            strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentNonfiscal());
+            return null;
+        }
+        /// <summary>
+        /// Закрыть нефискальный документ
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_421(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            try
+            {
+                var obj = fw16Log.currentShift().Documents.currentNonfiscal();
+                if ((strTic = StringOrError(strTic, streamReader, obj)) != null)
+                {
+                    obj.dtEnd = ((Regex.Match(strTic, REGTime)).ToString());
+                    if (fw16Log.currentShift().Summary == null) fw16Log.currentShift().Summary = new Summary();
+                    switch (obj.sign)
+                    {
+                        case "Income":
+                            if (fw16Log.currentShift().Summary.Income == null) fw16Log.currentShift().Summary.Income = new Income();
+                            fw16Log.currentShift().Summary.Income.cash += obj.cash;
+                            fw16Log.currentShift().Summary.Income.electron += obj.electron;
+                            break;
+                        case "IncomeBack":
+                            if (fw16Log.currentShift().Summary.IncomeBack == null) fw16Log.currentShift().Summary.IncomeBack = new IncomeBack();
+                            fw16Log.currentShift().Summary.IncomeBack.cash += obj.cash;
+                            fw16Log.currentShift().Summary.IncomeBack.electron += obj.electron;
+                            break;
+                        case "OutcomeBack":
+                            if (fw16Log.currentShift().Summary.OutcomeBack == null) fw16Log.currentShift().Summary.OutcomeBack = new OutcomeBack();
+                            fw16Log.currentShift().Summary.OutcomeBack.cash += obj.cash;
+                            fw16Log.currentShift().Summary.OutcomeBack.electron += obj.electron;
+                            break;
+                        case "Outcome":
+                            if (fw16Log.currentShift().Summary.Outcome == null) fw16Log.currentShift().Summary.Outcome = new Outcome();
+                            fw16Log.currentShift().Summary.Outcome.cash += obj.cash;
+                            fw16Log.currentShift().Summary.Outcome.electron += obj.electron;
+                            break;
+                        default:
+                            break;
+                    }
+                    fw16Log.currentShift().Summary.nfdСount += 1;
+                    return strTic;
+                }
+                return null;
+            }
+            catch
+            {
+                fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
+                fw16Log.currentError().Message = "Поврежденный лог!(407)";
+                return null;
+            }
+            return null;
+        }
+
+        
+        /// <summary>
+        /// Получение оплаты
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_409(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            try
+            {
+                streamReader.ReadLine();
+                strTic = streamReader.ReadLine();
+                if ((strTic).IndexOf("Cash") > 0)
+                {
+                    strTic = streamReader.ReadLine();
+                    if (fw16Log.currentShift().Documents.currentDoc == "Nonfiscal")
+                    {
+                        fw16Log.currentShift().Documents.currentNonfiscal().cash += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                        if ((strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentNonfiscal())) != null)
+                        {
+                            strTic = streamReader.ReadLine();
+                            fw16Log.currentShift().Documents.currentNonfiscal().cash+= Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString()) > 0 ? 0 : Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString());
+                        }
+                    }
+                    if (fw16Log.currentShift().Documents.currentDoc == "Receipt")
+                    {
+                        fw16Log.currentShift().Documents.currentReceipt().cash += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                        if ((strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentReceipt())) != null)
+                        {
+                            strTic = streamReader.ReadLine();
+                            fw16Log.currentShift().Documents.currentReceipt().cash += Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString())>0 ? 0 : Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString());
+                        }
+                    }
+                }
+                else
+                {
+                    strTic = streamReader.ReadLine();
+                    if (fw16Log.currentShift().Documents.currentDoc == "Nonfiscal")
+                    {
+                        fw16Log.currentShift().Documents.currentNonfiscal().electron += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                    }
+                    if (fw16Log.currentShift().Documents.currentDoc == "Receipt")
+                    {
+                        fw16Log.currentShift().Documents.currentReceipt().electron += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                    }
+                }
+                return strTic;
+            }
+            catch
+            {
+                fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
+                fw16Log.currentError().Message = "Поврежденный лог!(409)";
+                return null;
+            }            
+        }
         
         static void Main(string[] args)
         {
-            string directory="def";
-            Console.Write("Укажите путь к файлу: ");
-            //directory = Console.ReadLine();                                       // получить путь к файлу
-            //while (directory != "")                                               //зацикливание
+            string fileName="defTest";                                       // получить путь к файлу
+            string directory;
+            while (fileName != "")                                               //зацикливание
             {
-                if (directory == "def")                                                                 //Тестовый вариант пути к логам
-                {                                                                                       //Все старания ради лени
-                    try
+            Console.Write("\nУкажите путь к файлу: ");
+            fileName = Console.ReadLine();
+                //Тестовый вариант пути к логам
+                switch (fileName)
+                {
+                    case "def":
+                    case "defTest":
+                        try
                     {
-                        File.OpenRead("FP180119.log");
+                        FileStream fileStream;
+                        fileStream=File.OpenRead("TESTDEFOLT.log");
+                        fileStream.Close();
                     }
                     catch
                     {
@@ -489,68 +1060,200 @@ namespace ConsoleApp1
                         bool flag = true;
                         while (flag)
                         {
-                            Console.WriteLine("Введите путь к файлу");
-                            try { File.Copy(Console.ReadLine(),(Directory.GetCurrentDirectory()+"\\FP180119.log"),true); flag = false;  }
-                            catch { }
+                            Console.WriteLine("Введите путь к файлу .log");
+                            try
+                            {
+                                File.Copy(Console.ReadLine(),(Directory.GetCurrentDirectory()+"\\TESTDEFOLT.log"),true);
+                                flag = false;
+                            }
+                            catch { Console.Clear();  Console.WriteLine("не верный путь");}
                         }
                     }
                     try
                     {
-                        File.Delete("save\\newxml.xml.xml");
+                        File.Delete("save\\TESTDEFOLT.log.xml");
                     }
                     catch { }
-                    NameOfNewXML("FP180119.log");
-                    directory = "save";
-                }   
-                else
+                    NameOfNewXML("TESTDEFOLT.log");
+                        break;
+                    case "removeDefolt":File.Delete("TESTDEFOLT.log");
+                        break;
+                    case "tree": File.Delete(@"save/testTree.xml");
+                        break;
+                    default: NameOfNewXML(fileName);
+                        break;
+                } 
+                
+                
+                if (fileName == "defTest")            //тестирование и пример того как должно работать
                 {
-                    NameOfNewXML(directory);
-                }
 
-                // Просто тестирование
-                // Провел небольшое тестирование переполнения и при 1000 на 1000 циклах хром не хочет открыать xml но xml пишется без особой нагузки
-                Fw16Log fw16Log = new Fw16Log();
-                fw16Log.dateEnd = "time";
-                fw16Log.errorCount = 5;
-                fw16Log.Environment.Fw16.path = "fw16.dll";
-                fw16Log.Environment.Fw16.version = "11122222";
-                fw16Log.NExtError().code = "ERRORTEXTTEST";
-                fw16Log.Environment.Ecr.NExtError().cmd = "ECRTESTERRORTEXT";
-                for (int i = 0; i < 10; i++)
-                {
-                    fw16Log.NExtShift().closed = "true";
-                    fw16Log.currentShift().opened = "now";
-                    fw16Log.currentShift().Documents = new Documents();
-                    for (int j = 0; j < 10; j++)
+                    Fw16Log fw16Log = new Fw16Log();
+                    // Просто тестирование
+                    // Провел небольшое тестирование переполнения и при 1000 на 1000 циклах хром не хочет открыать xml но xml пишется без особой нагузки
+                    fw16Log.dateEnd = "time";
+                    fw16Log.errorCount = 5;
+                    fw16Log.Environment.Fw16.path = "fw16.dll";
+                    fw16Log.Environment.Fw16.version = "11122222";
+                    fw16Log.NExtError().code = "ERRORTEXTTEST";
+                    fw16Log.Environment.Ecr.NExtError().cmd = "ECRTESTERRORTEXT";
+                    for (int i = 0; i < 3; i++)
                     {
-                        fw16Log.currentShift().Documents.NExtReceipt().dtStart = "2018-01-18T09:06:01";
-                        fw16Log.currentShift().Documents.currentShift().dtEnd = "never";
-                        fw16Log.currentShift().Documents.currentShift().electron = "test";
-                        fw16Log.currentShift().Documents.currentShift().cash = "test";
-                        fw16Log.currentShift().Documents.currentShift().fiscal = "test";
-                        fw16Log.currentShift().Documents.currentShift().itemСount = "test";
-                        fw16Log.currentShift().Documents.currentShift().total = "test";
-                        fw16Log.currentShift().Documents.currentShift().sign = "test";
+                        fw16Log.NExtShift().closed = "true";
+                        fw16Log.currentShift().opened = "now";
+                        fw16Log.currentShift().Documents = new Documents();
+                        for (int j = 0; j < 3; j++)
+                        {
+                            fw16Log.currentShift().Documents.NExtReceipt().dtStart = "2018-01-18T09:06:01";
+                            fw16Log.currentShift().Documents.currentReceipt().dtEnd = "never";
+                            fw16Log.currentShift().Documents.currentReceipt().electron =100;
+                            fw16Log.currentShift().Documents.currentReceipt().cash = 150;
+                            fw16Log.currentShift().Documents.currentReceipt().fiscal = "test";
+                            fw16Log.currentShift().Documents.currentReceipt().itemСount = 1500;
+                            fw16Log.currentShift().Documents.currentReceipt().total = 5000;
+                            fw16Log.currentShift().Documents.currentReceipt().sign = "test";
+                            fw16Log.currentShift().Documents.currentReceipt().NExtError().cmd = "Document ERROR TEST";
+                            fw16Log.currentShift().Documents.NExtNonfiscal().dtStart = "!!!!!!!!!!!!!!!";
+                            fw16Log.currentShift().Documents.currentNonfiscal().dtEnd = "^^^^^^^^^^^";
+                        }
+                        fw16Log.currentShift().Summary = new Summary();
+                        fw16Log.currentShift().Summary.Income = new Income();
+                        fw16Log.currentShift().Summary.Income.cash = 123;
+                        fw16Log.currentShift().Summary.Income.electron = 123;
+                        fw16Log.currentShift().Summary.fdСount = 123;
+                        fw16Log.NExtShift().opened = "123test";
                     }
-                    fw16Log.currentShift().Summary = new Summary();
-                    fw16Log.currentShift().Summary.Income = new Income();
-                    fw16Log.currentShift().Summary.Income.cash = "123";
-                    fw16Log.currentShift().Summary.Income.electron = "123";
-                    fw16Log.currentShift().Summary.fdСount = "1";
-                    fw16Log.NExtShift().opened = "123test";
+                    if (nameXML != "false")
+                    {
+                        XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
+
+                        using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
+                        {
+                            formatter.Serialize(fs, fw16Log);
+                        }
+                    }
                 }
                 //КОНЕЦ тестирования
-                if (nameXML != "false")
-                {
-                    XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
 
-                    using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
+                if(fileName == "def")
+                {
+                    Fw16Log fw16Log = new Fw16Log();
+                    StreamReader streamReader = File.OpenText("TESTDEFOLT.log");
+                    decimal count =1;
+                    Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
                     {
-                        formatter.Serialize(fs, fw16Log);
+                        string strTic,typeCod;
+                        while ((strTic = streamReader.ReadLine()) != null)
+                        {
+
+                            count=progresprogressbar(streamReader,count);
+
+
+                            typeCod = GetCod(strTic, fw16Log);
+                            if (typeCod != null)
+
+                                switch (typeCod)
+                                {
+                                    case "0":
+                                        Console.WriteLine(strTic);
+                                        break;
+                                    case "122":
+                                        GetCommand_122(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "121":
+                                        if(fw16Log.Environment.Ecr.model== "notSet")
+                                            GetCommand_121(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "400":
+                                        GetCommand_400(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "401":
+                                        GetCommand_401(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "402":
+                                        GetCommand_402(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "403":
+                                        GetCommand_403(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "407":
+                                        GetCommand_407(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "408":
+                                        GetCommand_408(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "420":
+                                        GetCommand_420(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "421":
+                                        GetCommand_421(strTic, streamReader, fw16Log);
+                                        break;
+                                    case "409":
+                                        GetCommand_409(strTic, streamReader, fw16Log);
+                                        break;
+                                    default:
+                                        StringOrError(strTic, streamReader, fw16Log);
+                                        break;
+
+                                }
+                        }
+                    }
+                    streamReader.Close();
+                    fw16Log.errorCount = Error.count;
+                    if (nameXML != "false")
+                    {
+                        XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
+
+                        using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
+                        {
+                            formatter.Serialize(fs, fw16Log);
+                        }
                     }
                 }
-                
-                Console.ReadKey();
+
+                if (fileName == "tree")
+                {
+                    StreamReader streamReader = File.OpenText("TESTDEFOLT.log");
+                    tree tree = new tree();
+                    decimal progress = 1;
+                    Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
+                    string str=null;
+                    int count = 0;
+                    {
+                        string strTic, typeCod;
+                        while ((strTic = streamReader.ReadLine()) != null)
+                        {
+                            progress= progresprogressbar(streamReader, progress);
+                            if (strTic.IndexOf("Команда FW16: [") <= 0)
+                                typeCod = null;
+                            else
+                            {
+                                typeCod = strTic.Remove(0, strTic.IndexOf("Команда FW16: [") + 15);  //15-кол-во символов искомой строки
+                                typeCod = typeCod.Remove(3);
+                            }
+                            if (typeCod != null&& typeCod !="128")
+                            {
+                                if (str == typeCod) count++;
+                                else { str = typeCod; count = 0; }
+                                tree.NExtbranch().branch = strTic+"   повторение команды №"+count;
+                               // Console.WriteLine(strTic);
+                            }
+                                    
+                        }
+                    }
+                    {
+                        nameXML = "save\\testTree.xml";
+                        XmlSerializer formatter = new XmlSerializer(typeof(tree));                       //сборка xml файла 
+
+                        using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
+                        {
+                            formatter.Serialize(fs, tree);
+                        }
+                    }
+                }
+
+
+                //Console.ReadKey();
             }
         }
     }
