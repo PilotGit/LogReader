@@ -1017,10 +1017,10 @@ namespace ConsoleApp1
                 }
                 return null;
             }
-            catch
+            catch(Exception ex)
             {
                 fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
-                fw16Log.currentError().Message = "Поврежденный лог!(408b)";
+                fw16Log.currentError().Message = "Поврежденный лог!(408b) Закрыт документ без открытия";
                 return null;
             }
         }
@@ -1155,6 +1155,7 @@ namespace ConsoleApp1
         static void Main(string[] args)
         {
             string fileName="";                                       // получить путь к файлу
+            //Обработка аргументов
             switch (args.Length)
             {
                 case 0:
@@ -1186,6 +1187,7 @@ namespace ConsoleApp1
                         Console.WriteLine("Не верные параметры");
                     break;
             }
+            //обработка консольного режима
             while (fileName != "")                                               //зацикливание
             {
             Console.Write("\nУкажите путь к файлу: ");
