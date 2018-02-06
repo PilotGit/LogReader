@@ -567,7 +567,14 @@ namespace ConsoleApp1
     class Program
     {
         const string REGTime = @"\d+:\d+:\d+\.\d+";
+        /// <summary>
+        /// путь к сохранению лога
+        /// </summary>
         static string nameXML=@"save/newxml.xml";
+        /// <summary>
+        /// путь к исходному файлу
+        /// </summary>
+        static string directory;
 
         static public decimal progresprogressbar(StreamReader fileStream,decimal count)
         {
@@ -582,18 +589,22 @@ namespace ConsoleApp1
         /// <summary>
         /// Cоздание нового имени файла по имени полученного файла + ".XML"
         /// </summary>
-        static void NameOfNewXML(string file,string directory = "")                                                                                 //Получение нового имени базовым именем NewXML
+        static string  NameOfNewXML(string file,string directory = "")                                                                                 //Получение нового имени базовым именем NewXML
         {
-            
-            Directory.CreateDirectory((directory==""?"":directory+ "\\") +"save");
             
             try
             {
+                file= Regex.Replace(file, "\"", "");
                 File.OpenRead(file);
-                nameXML = file;
-                Console.WriteLine(nameXML = ((directory == "")?"": @directory)+ @"save\" + Regex.Match(file, @"[^\\]*log").ToString() +".xml");
+                if(Regex.Match(file, @"[^\\]*log").ToString() == "") { Console.WriteLine("файл имеет расширение не .log"); nameXML = "false"; return ""; }
+                Directory.CreateDirectory((directory==""?Directory.GetParent(file).ToString():directory) +"\\save");
+                Console.WriteLine(nameXML = ((directory == "")? Directory.GetParent(file).ToString(): @directory)+ @"\save\" + Regex.Match(file, @"[^\\]*log").ToString() +".xml");
+                try { File.Delete(nameXML); }          catch { }
+                directory = file;
+                Program.directory = directory;
+                return directory;
             }
-            catch { Console.WriteLine("файл не существует");nameXML = "false"; }
+            catch { Console.WriteLine("файл не существует");nameXML = "false"; return ""; }
             
         }
         /// <summary>
@@ -650,6 +661,88 @@ namespace ConsoleApp1
             }
             return null;
         }
+        /// <summary>
+        /// обработка лога
+        /// </summary>
+        static public void xmlWrite()
+        {
+            
+            Fw16Log fw16Log = new Fw16Log();
+            StreamReader streamReader = File.OpenText(directory);
+            decimal count = 1;
+            Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
+            {
+                string strTic, typeCod;
+                while ((strTic = streamReader.ReadLine()) != null)
+                {
+
+                    count = progresprogressbar(streamReader, count);
+
+
+                    typeCod = GetCod(strTic, fw16Log);
+                    if (typeCod != null)
+
+                        switch (typeCod)
+                        {
+                            case "0":
+                                Console.WriteLine(strTic);
+                                break;
+                            case "122":
+                                GetCommand_122(strTic, streamReader, fw16Log);
+                                break;
+                            case "121":
+                                if (fw16Log.Environment.Ecr.model == "notSet")
+                                    GetCommand_121(strTic, streamReader, fw16Log);
+                                break;
+                            case "400":
+                                GetCommand_400(strTic, streamReader, fw16Log);
+                                break;
+                            case "401":
+                                GetCommand_401(strTic, streamReader, fw16Log);
+                                break;
+                            case "402":
+                                GetCommand_402(strTic, streamReader, fw16Log);
+                                break;
+                            case "403":
+                                GetCommand_403(strTic, streamReader, fw16Log);
+                                break;
+                            case "407":
+                                GetCommand_407(strTic, streamReader, fw16Log);
+                                break;
+                            case "408":
+                                GetCommand_408(strTic, streamReader, fw16Log);
+                                break;
+                            case "420":
+                                GetCommand_420(strTic, streamReader, fw16Log);
+                                break;
+                            case "421":
+                                GetCommand_421(strTic, streamReader, fw16Log);
+                                break;
+                            case "409":
+                                GetCommand_409(strTic, streamReader, fw16Log);
+                                break;
+                            default:
+                                StringOrError(strTic, streamReader, fw16Log);
+                                break;
+
+                        }
+                }
+            }
+            streamReader.Close();
+            fw16Log.errorCount = Error.count;
+            if (nameXML != "false")
+            {
+                XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
+
+                using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
+                {
+                    formatter.Serialize(fs, fw16Log);
+                }
+            }
+            
+        }
+
+
         /// <summary>
         /// получение firmware
         /// </summary>
@@ -792,7 +885,7 @@ namespace ConsoleApp1
                     strTic = streamReader.ReadLine();
                     strTic = streamReader.ReadLine();
                     strTic = streamReader.ReadLine();
-                    obj.total = Convert.ToDecimal((Regex.Match(strTic, @"Total=([0-9]*)").Groups[1]).ToString());
+                    obj.total = Convert.ToDecimal((Regex.Match(strTic, @"Total=([0-9,]*)").Groups[1]).ToString());
                     strTic = StringOrError(strTic, streamReader, obj);                    
                 }
             return null;
@@ -976,8 +1069,7 @@ namespace ConsoleApp1
             }
             return null;
         }
-
-        
+                
         /// <summary>
         /// Получение оплаты
         /// </summary>
@@ -1038,7 +1130,6 @@ namespace ConsoleApp1
         static void Main(string[] args)
         {
             string fileName="defTest";                                       // получить путь к файлу
-            string directory;
             while (fileName != "")                                               //зацикливание
             {
             Console.Write("\nУкажите путь к файлу: ");
@@ -1049,38 +1140,38 @@ namespace ConsoleApp1
                     case "def":
                     case "defTest":
                         try
-                    {
-                        FileStream fileStream;
-                        fileStream=File.OpenRead("TESTDEFOLT.log");
-                        fileStream.Close();
-                    }
-                    catch
-                    {
-                        Console.Clear();
-                        bool flag = true;
-                        while (flag)
                         {
-                            Console.WriteLine("Введите путь к файлу .log");
-                            try
-                            {
-                                File.Copy(Console.ReadLine(),(Directory.GetCurrentDirectory()+"\\TESTDEFOLT.log"),true);
-                                flag = false;
-                            }
-                            catch { Console.Clear();  Console.WriteLine("не верный путь");}
+                            FileStream fileStream;
+                            fileStream=File.OpenRead("TESTDEFOLT.log");
+                            fileStream.Close();
                         }
-                    }
-                    try
-                    {
-                        File.Delete("save\\TESTDEFOLT.log.xml");
-                    }
-                    catch { }
-                    NameOfNewXML("TESTDEFOLT.log");
+                        catch
+                        {
+                            Console.Clear();
+                            bool flag = true;
+                            while (flag)
+                            {
+                                Console.WriteLine("Введите путь к файлу .log");
+                                try
+                                {
+                                    File.Copy(Console.ReadLine(),(Directory.GetCurrentDirectory()+"\\TESTDEFOLT.log"),true);
+                                    flag = false;
+                                }
+                                catch { Console.Clear();  Console.WriteLine("не верный путь");}
+                            }
+                        }
+                        directory= NameOfNewXML("TESTDEFOLT.log");
                         break;
-                    case "removeDefolt":File.Delete("TESTDEFOLT.log");
+                    case "removeDefolt":
+                        try { File.Delete("TESTDEFOLT.log"); } catch { }
                         break;
-                    case "tree": File.Delete(@"save/testTree.xml");
+                    case "tree":
+                        File.Delete(@"save/testTree.xml");
+                        nameXML = @"save/testTree.xml";
                         break;
-                    default: NameOfNewXML(fileName);
+                    default:
+                        directory = NameOfNewXML(fileName);
+                        xmlWrite();
                         break;
                 } 
                 
@@ -1137,83 +1228,12 @@ namespace ConsoleApp1
 
                 if(fileName == "def")
                 {
-                    Fw16Log fw16Log = new Fw16Log();
-                    StreamReader streamReader = File.OpenText("TESTDEFOLT.log");
-                    decimal count =1;
-                    Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
-                    {
-                        string strTic,typeCod;
-                        while ((strTic = streamReader.ReadLine()) != null)
-                        {
-
-                            count=progresprogressbar(streamReader,count);
-
-
-                            typeCod = GetCod(strTic, fw16Log);
-                            if (typeCod != null)
-
-                                switch (typeCod)
-                                {
-                                    case "0":
-                                        Console.WriteLine(strTic);
-                                        break;
-                                    case "122":
-                                        GetCommand_122(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "121":
-                                        if(fw16Log.Environment.Ecr.model== "notSet")
-                                            GetCommand_121(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "400":
-                                        GetCommand_400(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "401":
-                                        GetCommand_401(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "402":
-                                        GetCommand_402(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "403":
-                                        GetCommand_403(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "407":
-                                        GetCommand_407(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "408":
-                                        GetCommand_408(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "420":
-                                        GetCommand_420(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "421":
-                                        GetCommand_421(strTic, streamReader, fw16Log);
-                                        break;
-                                    case "409":
-                                        GetCommand_409(strTic, streamReader, fw16Log);
-                                        break;
-                                    default:
-                                        StringOrError(strTic, streamReader, fw16Log);
-                                        break;
-
-                                }
-                        }
-                    }
-                    streamReader.Close();
-                    fw16Log.errorCount = Error.count;
-                    if (nameXML != "false")
-                    {
-                        XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
-
-                        using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
-                        {
-                            formatter.Serialize(fs, fw16Log);
-                        }
-                    }
+                    xmlWrite();
                 }
 
                 if (fileName == "tree")
                 {
-                    StreamReader streamReader = File.OpenText("TESTDEFOLT.log");
+                    StreamReader streamReader = File.OpenText(directory);
                     tree tree = new tree();
                     decimal progress = 1;
                     Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
@@ -1242,7 +1262,6 @@ namespace ConsoleApp1
                         }
                     }
                     {
-                        nameXML = "save\\testTree.xml";
                         XmlSerializer formatter = new XmlSerializer(typeof(tree));                       //сборка xml файла 
 
                         using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
