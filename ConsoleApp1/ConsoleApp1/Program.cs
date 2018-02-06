@@ -587,22 +587,26 @@ namespace ConsoleApp1
             return count;
         }
         /// <summary>
-        /// Cоздание нового имени файла по имени полученного файла + ".XML"
+        /// образование имени файла и расположения файла ?directory!=""
         /// </summary>
-        static string  NameOfNewXML(string file,string directory = "")                                                                                 //Получение нового имени базовым именем NewXML
+        /// <param name="file">путь к файлу</param>
+        /// <param name="directorySave">путь сохранения</param>
+        /// <returns></returns>
+        static string  NameOfNewXML(string file,string directorySave = "")                                                                                 //Получение нового имени базовым именем NewXML
         {
-            
+            directorySave = Regex.Replace(directorySave, "\"", "");
             try
             {
                 file= Regex.Replace(file, "\"", "");
                 File.OpenRead(file);
                 if(Regex.Match(file, @"[^\\]*log").ToString() == "") { Console.WriteLine("файл имеет расширение не .log"); nameXML = "false"; return ""; }
-                Directory.CreateDirectory((directory==""?Directory.GetParent(file).ToString():directory) +"\\save");
-                Console.WriteLine(nameXML = ((directory == "")? Directory.GetParent(file).ToString(): @directory)+ @"\save\" + Regex.Match(file, @"[^\\]*log").ToString() +".xml");
+                Directory.CreateDirectory((directorySave == ""?Directory.GetParent(file).ToString(): directorySave) +"\\save");
+                Console.WriteLine("Файл сохранен в: {0}",nameXML = ((directorySave == "")? Directory.GetParent(file).ToString(): directorySave) + @"\save\" + Regex.Match(file, @"[^\\]*log").ToString() +".xml");
                 try { File.Delete(nameXML); }          catch { }
-                directory = file;
-                Program.directory = directory;
-                return directory;
+                directorySave = file;
+                directory = directorySave;
+                Directory.CreateDirectory(Path.GetDirectoryName(nameXML));
+                return directorySave;
             }
             catch { Console.WriteLine("файл не существует");nameXML = "false"; return ""; }
             
@@ -617,7 +621,7 @@ namespace ConsoleApp1
             if (!fw16Log.Environment.Fw16.set)                                      //чтение из заголовка информации о .dll
                 if(getCod.IndexOf("=== Старт") > 0)
                 {
-                    fw16Log.Environment.Fw16.path=(Regex.Match(getCod, "[^.dll]*.dll")).ToString();
+                    fw16Log.Environment.Fw16.path=(Regex.Match(getCod, "[A-Z]:.*dll")).ToString();
                     fw16Log.Environment.Fw16.version = (Regex.Match(getCod, @"\d+\.\d+\.\d+\.\d+")).ToString();
                     fw16Log.Environment.Fw16.set = true;
                 }
@@ -666,82 +670,102 @@ namespace ConsoleApp1
         /// </summary>
         static public void xmlWrite()
         {
-            
-            Fw16Log fw16Log = new Fw16Log();
-            StreamReader streamReader = File.OpenText(directory);
-            decimal count = 1;
-            Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
+            if (directory != "")
             {
-                string strTic, typeCod;
-                while ((strTic = streamReader.ReadLine()) != null)
+                Fw16Log fw16Log = new Fw16Log();
+                StreamReader streamReader = File.OpenText(directory);
+                decimal count = 1;
+                Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
                 {
+                    string strTic, typeCod;
+                    while ((strTic = streamReader.ReadLine()) != null)
+                    {
 
-                    count = progresprogressbar(streamReader, count);
+                        count = progresprogressbar(streamReader, count);
 
 
-                    typeCod = GetCod(strTic, fw16Log);
-                    if (typeCod != null)
+                        typeCod = GetCod(strTic, fw16Log);
+                        if (typeCod != null)
 
-                        switch (typeCod)
-                        {
-                            case "0":
-                                Console.WriteLine(strTic);
-                                break;
-                            case "122":
-                                GetCommand_122(strTic, streamReader, fw16Log);
-                                break;
-                            case "121":
-                                if (fw16Log.Environment.Ecr.model == "notSet")
-                                    GetCommand_121(strTic, streamReader, fw16Log);
-                                break;
-                            case "400":
-                                GetCommand_400(strTic, streamReader, fw16Log);
-                                break;
-                            case "401":
-                                GetCommand_401(strTic, streamReader, fw16Log);
-                                break;
-                            case "402":
-                                GetCommand_402(strTic, streamReader, fw16Log);
-                                break;
-                            case "403":
-                                GetCommand_403(strTic, streamReader, fw16Log);
-                                break;
-                            case "407":
-                                GetCommand_407(strTic, streamReader, fw16Log);
-                                break;
-                            case "408":
-                                GetCommand_408(strTic, streamReader, fw16Log);
-                                break;
-                            case "420":
-                                GetCommand_420(strTic, streamReader, fw16Log);
-                                break;
-                            case "421":
-                                GetCommand_421(strTic, streamReader, fw16Log);
-                                break;
-                            case "409":
-                                GetCommand_409(strTic, streamReader, fw16Log);
-                                break;
-                            default:
-                                StringOrError(strTic, streamReader, fw16Log);
-                                break;
+                            switch (typeCod)
+                            {
+                                case "0":
+                                    Console.WriteLine(strTic);
+                                    break;
+                                case "122":
+                                    GetCommand_122(strTic, streamReader, fw16Log);
+                                    break;
+                                case "121":
+                                    if (fw16Log.Environment.Ecr.model == "notSet")
+                                        GetCommand_121(strTic, streamReader, fw16Log);
+                                    break;
+                                case "400":
+                                    GetCommand_400(strTic, streamReader, fw16Log);
+                                    break;
+                                case "401":
+                                    GetCommand_401(strTic, streamReader, fw16Log);
+                                    break;
+                                case "402":
+                                    GetCommand_402(strTic, streamReader, fw16Log);
+                                    break;
+                                case "403":
+                                    GetCommand_403(strTic, streamReader, fw16Log);
+                                    break;
+                                case "407":
+                                    GetCommand_407(strTic, streamReader, fw16Log);
+                                    break;
+                                case "408":
+                                    GetCommand_408(strTic, streamReader, fw16Log);
+                                    break;
+                                case "420":
+                                    GetCommand_420(strTic, streamReader, fw16Log);
+                                    break;
+                                case "421":
+                                    GetCommand_421(strTic, streamReader, fw16Log);
+                                    break;
+                                case "409":
+                                    GetCommand_409(strTic, streamReader, fw16Log);
+                                    break;
+                                default:
+                                    StringOrError(strTic, streamReader, fw16Log);
+                                    break;
 
-                        }
+                            }
+                    }
+                }
+                streamReader.Close();
+                fw16Log.errorCount = Error.count;
+                if (nameXML != "false")
+                {
+                    XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
+
+                    using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
+                    {
+                        formatter.Serialize(fs, fw16Log);
+                    }
                 }
             }
-            streamReader.Close();
-            fw16Log.errorCount = Error.count;
-            if (nameXML != "false")
-            {
-                XmlSerializer formatter = new XmlSerializer(typeof(Fw16Log));                       //сборка xml файла 
-
-                using (FileStream fs = new FileStream(nameXML, FileMode.OpenOrCreate))
-                {
-                    formatter.Serialize(fs, fw16Log);
-                }
-            }
-            
+            Console.WriteLine();
         }
+        /// <summary>
+        /// обработка всех логов в директории
+        /// </summary>
+        /// <param name="directoryfile">путь к деректории логов</param>
+        /// <param name="directory">путь куда сохранить</param>
+        /// <param name="nameOfFile">Этот параметр может содержать сочетание допустимого литерального пути и подстановочных символов (* и ?) 
+        /// По умолчанию *.log </param>
+        static public void XMLWhileNotEnd(string directoryfile, string directorySave = "",string nameOfFile="*.log")
+        {
+            directoryfile = Regex.Replace(directoryfile, "\"", "");
+            directorySave = Regex.Replace(directorySave, "\"", "");
+            foreach (var a in Directory.EnumerateFiles(directoryfile, nameOfFile))
+            {
+                directory=NameOfNewXML(a, directorySave);
+                if(directory!="")
+                xmlWrite();
+            }
 
+        }
 
         /// <summary>
         /// получение firmware
@@ -774,13 +798,14 @@ namespace ConsoleApp1
         static public string GetCommand_121(string strTic, StreamReader streamReader, Fw16Log fw16Log)
         {
             var obj = fw16Log.Environment.Ecr;
-                if ((StringOrError(strTic, streamReader, obj)) != null)
-                {
-                    strTic = streamReader.ReadLine();
-                    strTic = streamReader.ReadLine();                                               //переход на строку с моделью 
-                    obj.model = ((Regex.Match(strTic, @"Model=(.*Ф)").Groups[1]).ToString());
-                    return strTic;
-                }
+            if ((StringOrError(strTic, streamReader, obj)) != null)
+            {
+                strTic = streamReader.ReadLine();
+                strTic = streamReader.ReadLine();                                               //переход на строку с моделью 
+                obj.model = ((Regex.Match(strTic, "Model=(.*)[[]").Groups[1]).ToString());
+                obj.model = Regex.Replace(obj.model, "\0", string.Empty);
+                return strTic;
+            }
             return null;
         }
 
@@ -1129,7 +1154,38 @@ namespace ConsoleApp1
         
         static void Main(string[] args)
         {
-            string fileName="defTest";                                       // получить путь к файлу
+            string fileName="";                                       // получить путь к файлу
+            switch (args.Length)
+            {
+                case 0:
+                    fileName = "defTest";
+                    break;
+                case 1:
+                    if (Directory.Exists(Regex.Replace(args[0], "\"", "")) && !File.Exists(Regex.Replace(args[0], "\"", "")))   //проверка: это папка?
+                        XMLWhileNotEnd(args[0]);
+                    else
+                    {
+                        NameOfNewXML(args[0]);
+                        xmlWrite();
+                    }
+                    break;
+                case 2:
+                    if (Directory.Exists(Regex.Replace(args[0], "\"", "")) && !File.Exists(Regex.Replace(args[0], "\"", "")))   //проверка: это папка?
+                        XMLWhileNotEnd(args[0], args[1]);
+                    else
+                    {
+                        Console.WriteLine(args[0]);
+                        NameOfNewXML(args[0], args[1]);
+                        xmlWrite();
+                    }
+                    break;
+                case 3:
+                    if (Directory.Exists(Regex.Replace(args[0], "\"", "")) && !File.Exists(Regex.Replace(args[0], "\"", "")))   //проверка: это папка?
+                        XMLWhileNotEnd(args[0], args[1], args[2]);
+                    else
+                        Console.WriteLine("Не верные параметры");
+                    break;
+            }
             while (fileName != "")                                               //зацикливание
             {
             Console.Write("\nУкажите путь к файлу: ");
@@ -1137,6 +1193,10 @@ namespace ConsoleApp1
                 //Тестовый вариант пути к логам
                 switch (fileName)
                 {
+                    case "tes":
+                        fileName = Console.ReadLine();
+                        XMLWhileNotEnd(Regex.Replace(fileName, "\"", ""));
+                        break;
                     case "def":
                     case "defTest":
                         try
@@ -1154,7 +1214,7 @@ namespace ConsoleApp1
                                 Console.WriteLine("Введите путь к файлу .log");
                                 try
                                 {
-                                    File.Copy(Console.ReadLine(),(Directory.GetCurrentDirectory()+"\\TESTDEFOLT.log"),true);
+                                    File.Copy(Regex.Replace(Console.ReadLine(), "\"", "") ,(Directory.GetCurrentDirectory()+"\\TESTDEFOLT.log"),true);
                                     flag = false;
                                 }
                                 catch { Console.Clear();  Console.WriteLine("не верный путь");}
@@ -1170,8 +1230,13 @@ namespace ConsoleApp1
                         nameXML = @"save/testTree.xml";
                         break;
                     default:
-                        directory = NameOfNewXML(fileName);
-                        xmlWrite();
+                        if (Directory.Exists( fileName=Regex.Replace(fileName, "\"", "")) && !File.Exists(fileName))
+                            XMLWhileNotEnd(fileName);
+                        else
+                        {
+                            directory = NameOfNewXML(fileName);
+                            xmlWrite();
+                        }
                         break;
                 } 
                 
