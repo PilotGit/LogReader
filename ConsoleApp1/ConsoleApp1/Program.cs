@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 using System.IO;
+using System.Data.SqlClient;
 
 namespace ConsoleApp1
 {
@@ -35,6 +36,21 @@ namespace ConsoleApp1
         /// </summary>
         [XmlAttribute("text")]
         public string text;
+        /// <summary>
+        /// Текст GETSTATUS
+        /// </summary>
+        [XmlAttribute("GETSTATUS")]
+        public string GETSTATUS;
+        /// <summary>
+        /// Текст GETSUM
+        /// </summary>
+        [XmlAttribute("GETSUM")]
+        public string GETSUM;
+        /// <summary>
+        /// Текст GETSUM
+        /// </summary>
+        [XmlAttribute("GETCOUNT")]
+        public string GETCOUNT;
         /// <summary>
         /// дополнительная информация об ошибке 
         /// </summary>
@@ -82,7 +98,7 @@ namespace ConsoleApp1
     /// Корневой тег. Содержит в себе: атрибуты начало и конец ведения лога, кол-во ошибок, тег информации о ККТ, массив тегов рабочих сменн
     /// </summary>
     [Serializable]
-    public class Fw16Log 
+    public class Fw16Log
     {
         /// <summary>
         /// Атрибут значенея времени начала лога 
@@ -139,7 +155,7 @@ namespace ConsoleApp1
 
 
         //созданеи смены
-        private ushort nExt=0;
+        private ushort nExt = 0;
         private bool flagShift = false;
         /// <summary>
         /// создание новой смены
@@ -162,11 +178,11 @@ namespace ConsoleApp1
             {
                 return Shift[nExt - 1];
             }
-            catch 
+            catch
             {
                 return NExtShift();
             }
-           
+
         }
 
         public Fw16Log() { }
@@ -256,12 +272,12 @@ namespace ConsoleApp1
         /// Атрибут содержащий время начала смены
         /// </summary>
         [XmlAttribute]
-        public string opened="notSET";
+        public string opened = "notSET";
         /// <summary>
         /// Атрибут конца смены
         /// </summary>
         [XmlAttribute]
-        public string closed="notSET";
+        public string closed = "notSET";
         /// <summary>
         /// Тег содержащий информацию о типе документа и его содержание 
         /// </summary>
@@ -291,6 +307,11 @@ namespace ConsoleApp1
         /// </summary>
         [XmlElement]
         public List<Nonfiscal> Nonfiscal;
+        /// <summary>
+        /// Документ коррекции с его атрибутами ; нельзя использовать 
+        /// </summary>
+        [XmlElement]
+        public List<CORRDOC> CORRDOC;
         [XmlIgnore]
         public string currentDoc;
 
@@ -347,8 +368,36 @@ namespace ConsoleApp1
         {
             return Nonfiscal[NonfiscalnExt - 1];
         }
+
+
+        //создание документа коррекции
+        private ushort CORRDOCnExt = 0;
+        private bool CORRDOCflagShift = false;
+        /// <summary>
+        /// создание нового чека
+        /// </summary>
+        /// <returns>объект Не фискального чека</returns>
+        public CORRDOC NExtCORRDOC()
+        {
+            if (!CORRDOCflagShift) { CORRDOCflagShift = true; CORRDOC = new List<CORRDOC>(); }
+            CORRDOC.Add(new CORRDOC());
+            CORRDOCnExt++;
+            return CORRDOC[CORRDOCnExt - 1];
+        }
+        /// <summary>
+        /// получение текущего объекта Не фискального чека
+        /// </summary>
+        /// <returns>объект Не фискального чека</returns>
+        public CORRDOC currentCORRDOC()
+        {
+            return CORRDOC[CORRDOCnExt - 1];
+        }
     }
 
+    /// <summary>
+    /// Документ содержащий атрибуты: начала\конца чека, фскального номера, признак чека(приход, уход...),
+    /// сумму, внесенную сумму наличными\электронными
+    /// </summary>
     [Serializable]
     public class Nonfiscal : Errors
     {
@@ -372,6 +421,51 @@ namespace ConsoleApp1
         /// </summary>
         [XmlAttribute]
         public string Title;
+        /// <summary>
+        /// суммa чека
+        /// </summary>
+        [XmlAttribute("total")]
+        public decimal total;
+        /// <summary>
+        /// наличные 
+        /// </summary>
+        [XmlAttribute("cash")]
+        public decimal cash;
+        /// <summary>
+        /// электронные 
+        /// </summary>
+        [XmlAttribute("electron")]
+        public decimal electron;
+
+    }
+
+    /// <summary>
+    /// Документ содержащий атрибуты: начала\конца чека, фскального номера, признак чека(приход, уход...),
+    /// сумму, внесенную сумму наличными\электронными
+    /// </summary>
+    [Serializable]
+    public class CORRDOC : Errors
+    {
+        /// <summary>
+        /// Начало документа
+        /// </summary>
+        [XmlAttribute("dt-start")]
+        public string dtStart;
+        /// <summary>
+        /// Конец документа
+        /// </summary>
+        [XmlAttribute("dt-end")]
+        public string dtEnd;
+        /// <summary>
+        /// признак чека(приход, уход...)
+        /// </summary>
+        [XmlAttribute("sign")]
+        public string sign;
+        /// <summary>
+        /// текст в обработке
+        /// </summary>
+        [XmlAttribute]
+        public string Taxation;
         /// <summary>
         /// суммa чека
         /// </summary>
@@ -438,7 +532,7 @@ namespace ConsoleApp1
         [XmlAttribute("item-count")]
         public decimal itemСount;
         [XmlIgnore]
-        public bool end=true;
+        public bool end = true;
     }
     /// <summary>
     /// сумма в конце смены; атрибуты кол-во фискальных\нефискальных докуметов
@@ -533,7 +627,7 @@ namespace ConsoleApp1
     {
         [XmlElement("testB")]
         public List<Branch> branch;
-        
+
         private ushort nExt = 0;
         private bool flagbranch = false;
         public Branch NExtbranch()
@@ -566,24 +660,29 @@ namespace ConsoleApp1
 
     class Program
     {
-        const string REGTime = @"\d+:\d+:\d+\.\d+";
+        const string REGTime = @"\d+:\d+:\d+\.?\d+";
         /// <summary>
         /// путь к сохранению лога
         /// </summary>
-        static string nameXML=@"save/newxml.xml";
+        static string nameXML = @"save/newxml.xml";
         /// <summary>
         /// путь к исходному файлу
         /// </summary>
         static string directory;
+        /// <summary>
+        /// вывод информации для уточнения ошибки. либо так либо перпеписывать код
+        /// </summary>
+        static string NOTgotoButWorthIt = null;
+        static string GETSUM, GETCOUNT, GETSTATUS;
 
-        static public decimal progresprogressbar(StreamReader fileStream,decimal count)
+        static public decimal progresprogressbar(StreamReader fileStream, decimal count)
         {
-            while ((Convert.ToDecimal(fileStream.BaseStream.Length / 50))*count<Convert.ToDecimal(fileStream.BaseStream.Position))
+            while ((Convert.ToDecimal(fileStream.BaseStream.Length / 50)) * count < Convert.ToDecimal(fileStream.BaseStream.Position))
             {
                 count++;
                 Console.Write("|");
             }
-            
+
             return count;
         }
         /// <summary>
@@ -592,46 +691,50 @@ namespace ConsoleApp1
         /// <param name="file">путь к файлу</param>
         /// <param name="directorySave">путь сохранения</param>
         /// <returns></returns>
-        static string  NameOfNewXML(string file,string directorySave = "")                                                                                 //Получение нового имени базовым именем NewXML
+        static string NameOfNewXML(string file, string directorySave = "")                                                                                 //Получение нового имени базовым именем NewXML
         {
             directorySave = Regex.Replace(directorySave, "\"", "");
             try
             {
-                file= Regex.Replace(file, "\"", "");
+                file = Regex.Replace(file, "\"", "");
                 File.OpenRead(file);
-                if(Regex.Match(file, @"[^\\]*log").ToString() == "") { Console.WriteLine("файл имеет расширение не .log"); nameXML = "false"; return ""; }
-                Directory.CreateDirectory((directorySave == ""?Directory.GetParent(file).ToString(): directorySave) +"\\save");
-                Console.WriteLine("Файл сохранен в: {0}",nameXML = ((directorySave == "")? Directory.GetParent(file).ToString(): directorySave) + @"\save\" + Regex.Match(file, @"[^\\]*log").ToString() +".xml");
-                try { File.Delete(nameXML); }          catch { }
+                if (Regex.Match(file, @"[^\\]*log").ToString() == "") { Console.WriteLine("файл имеет расширение не .log"); nameXML = "false"; return ""; }
+                Directory.CreateDirectory((directorySave == "" ? Directory.GetParent(file).ToString() : directorySave) + "\\save");
+                Console.WriteLine("Файл сохранен в: {0}", nameXML = ((directorySave == "") ? Directory.GetParent(file).ToString() : directorySave) + @"\save\" + Regex.Match(file, @"[^\\]*log").ToString() + ".xml");
+                try { File.Delete(nameXML); } catch { }
                 directorySave = file;
                 directory = directorySave;
                 Directory.CreateDirectory(Path.GetDirectoryName(nameXML));
                 return directorySave;
             }
-            catch { Console.WriteLine("файл не существует");nameXML = "false"; return ""; }
-            
+            catch { Console.WriteLine("файл не существует"); nameXML = "false"; return ""; }
+
         }
         /// <summary>
         /// Возврат номера команды в случае нахождения команды
         /// </summary>
         /// <param name="getCod"> строка для поиска команды</param>
         /// <returns>пустую строку либо код команды</returns>
-        static string GetCod(string getCod,Fw16Log fw16Log)
+        static string GetCod(string getCod, Fw16Log fw16Log)
         {
-            if (!fw16Log.Environment.Fw16.set)                                      //чтение из заголовка информации о .dll
-                if(getCod.IndexOf("=== Старт") > 0)
-                {
-                    fw16Log.Environment.Fw16.path=(Regex.Match(getCod, "[A-Z]:.*dll")).ToString();
-                    fw16Log.Environment.Fw16.version = (Regex.Match(getCod, @"\d+\.\d+\.\d+\.\d+")).ToString();
-                    fw16Log.Environment.Fw16.set = true;
-                }
+            try
+            {
+                if (!fw16Log.Environment.Fw16.set)                                      //чтение из заголовка информации о .dll
+                    if (getCod.IndexOf("=== Старт") > 0)
+                    {
+                        fw16Log.Environment.Fw16.path = (Regex.Match(getCod, "[A-Z]:.*dll")).ToString();
+                        fw16Log.Environment.Fw16.version = (Regex.Match(getCod, @"\d+\.\d+\.\d+\.\d+")).ToString();
+                        fw16Log.Environment.Fw16.set = true;
+                    }
+            }
+            catch { }
             if (getCod.IndexOf("Команда FW16: [") <= 0)
                 return null;
             else
             {
-                getCod= getCod.Remove(0, getCod.IndexOf("Команда FW16: [") + 15);  //15-кол-во символов искомой строки
+                getCod = getCod.Remove(0, getCod.IndexOf("Команда FW16: [") + 15);  //15-кол-во символов искомой строки
                 return getCod.Remove(3);
-            }    
+            }
         }
         /// <summary>
         /// проверка на ошибку и возврат строки в случае отсутствия ошибки
@@ -640,25 +743,67 @@ namespace ConsoleApp1
         /// <param name="streamReader">поток</param>
         /// <param name="obj">текущий объект для Serialize</param>
         /// <returns></returns>
-        static public string StringOrError(string strTic, StreamReader streamReader, dynamic obj)
+        static public string StringOrError(string strTic, StreamReader streamReader, dynamic obj, bool isget = true)
         {
             string name = Regex.Match(strTic, @"\w* \(.*\)").ToString();    //получение названия команды из скобок
-            while (((strTic = streamReader.ReadLine()).IndexOf("----------")) ==-1)
+            while (((strTic = streamReader.ReadLine()).IndexOf("----------")) == -1)
             {
-                if(strTic.IndexOf("Код ответа FW16: [0] OK") >= 0)
+                if (strTic.IndexOf("Код ответа FW16: [0] OK") >= 0)
                 {
                     return strTic;
                 }
                 else
                 {
-                    if (strTic.IndexOf("Код ответа FW16: [0] OK") ==-1 && strTic.IndexOf("Код ответа FW16: [") >= 0)
+                    if (strTic.IndexOf("Код ответа FW16: [0] OK") == -1 && strTic.IndexOf("Код ответа FW16: [") >= 0)
                     {
                         Match match = Regex.Match(strTic, @"([\d:]*.[\d]*) Код ответа FW16: \[(.*)\]\s+(.*)");
                         obj.NExtError().cmd = name;
                         obj.currentError().code = match.Groups[2].ToString();
                         obj.currentError().text = match.Groups[3].ToString();
                         obj.currentError().dt = match.Groups[1].ToString();
-                        while (((strTic = streamReader.ReadLine()).IndexOf("----------------------")) == -1) { obj.currentError().Message += Regex.Replace(strTic, "\0",string.Empty)+ "\r\n"; }
+                        while (((strTic = streamReader.ReadLine()).IndexOf("----------------------")) == -1) { obj.currentError().Message += Regex.Replace(strTic, "\0", string.Empty) + "\r\n"; }
+                        //чтение команд GETCOUNT (129)\GETSUM (128)\GETSTATUS (101)
+                        if (isget)
+                        {
+                            while ((strTic = streamReader.ReadLine()) != null)
+                            {
+                                if (strTic.IndexOf("Команда FW16: [1") > 0)
+                                {
+                                    switch (strTic = Regex.Match(strTic, @"\[([0-9]{3})\]").Groups[1].ToString())
+                                    {
+                                        case "101":
+                                            obj.currentError().GETSTATUS += " Mod=" + Regex.Match(streamReader.ReadLine(), "value=([0-9]*)").Groups[1].ToString();
+                                            if (StringOrError(strTic, streamReader, obj, false) != null)
+                                                obj.currentError().GETSTATUS += Regex.Match(streamReader.ReadLine(), " value=[0-9]*").ToString();
+                                            else
+                                                obj.currentError().GETSTATUS += "err101";
+                                            break;
+                                        case "129":
+                                            obj.currentError().GETCOUNT += " Сounter=" + Regex.Match(streamReader.ReadLine(), "value=([0-9]*)").Groups[1].ToString();
+                                            if (StringOrError(strTic, streamReader, obj, false) != null)
+                                                obj.currentError().GETCOUNT += Regex.Match(streamReader.ReadLine(), "value=[0-9]*").ToString();
+                                            else
+                                                obj.currentError().GETCOUNT += "err129";
+                                            break;
+                                        case "128":
+                                            obj.currentError().GETSUM += " Сounter=" + Regex.Match(streamReader.ReadLine(), "value=([0-9]*)").Groups[1].ToString();
+                                            if (StringOrError(strTic, streamReader, obj, false) != null)
+                                                obj.currentError().GETSUM += Regex.Match(streamReader.ReadLine(), "value=[0-9]*").ToString();
+                                            else
+                                                obj.currentError().GETSUM += "err128";
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                }
+                                else if (strTic.IndexOf("Команда FW16: [") > 0)
+                                {
+                                    NOTgotoButWorthIt = strTic;
+                                    break;
+                                }
+                            }
+                        }
+                        //Конец вывода 
                         return null;
                     }
                 }
@@ -673,6 +818,7 @@ namespace ConsoleApp1
             if (directory != "")
             {
                 Fw16Log fw16Log = new Fw16Log();
+                Error.count = 0;
                 StreamReader streamReader = File.OpenText(directory);
                 decimal count = 1;
                 Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
@@ -682,9 +828,13 @@ namespace ConsoleApp1
                     {
 
                         count = progresprogressbar(streamReader, count);
-
-
+                        if (NOTgotoButWorthIt != null)
+                        {
+                            strTic = NOTgotoButWorthIt;
+                            NOTgotoButWorthIt = null;
+                        }
                         typeCod = GetCod(strTic, fw16Log);
+
                         if (typeCod != null)
 
                             switch (typeCod)
@@ -726,9 +876,14 @@ namespace ConsoleApp1
                                 case "409":
                                     GetCommand_409(strTic, streamReader, fw16Log);
                                     break;
+                                case "413":
+                                    GetCommand_413(strTic, streamReader, fw16Log);
+                                    break;
+
                                 default:
                                     StringOrError(strTic, streamReader, fw16Log);
                                     break;
+
 
                             }
                     }
@@ -745,6 +900,15 @@ namespace ConsoleApp1
                     }
                 }
             }
+            //РАБОТА С БД!!-------------------------------------------
+            //using (SqlConnection con = new SqlConnection(@"Data Source=plt-dvl;Initial Catalog=PGAutoTest;Integrated Security=True"))
+            //{
+            //    con.Open();
+
+            //    SqlCommand sqlCommand = new SqlCommand($"INSERT INTO testTable( [name], [date],[xml]) VALUES ('{System.Environment.UserName}', '{DateTime.Today}','{nameXML}');", con);
+            //    sqlCommand.ExecuteNonQuery();
+            //}
+            //Конец работы с бд---------------------------------------
             Console.WriteLine();
         }
         /// <summary>
@@ -754,15 +918,16 @@ namespace ConsoleApp1
         /// <param name="directory">путь куда сохранить</param>
         /// <param name="nameOfFile">Этот параметр может содержать сочетание допустимого литерального пути и подстановочных символов (* и ?) 
         /// По умолчанию *.log </param>
-        static public void XMLWhileNotEnd(string directoryfile, string directorySave = "",string nameOfFile="*.log")
+        static public void XMLWhileNotEnd(string directoryfile, string directorySave = "", string nameOfFile = "*.log")
         {
             directoryfile = Regex.Replace(directoryfile, "\"", "");
             directorySave = Regex.Replace(directorySave, "\"", "");
             foreach (var a in Directory.EnumerateFiles(directoryfile, nameOfFile))
             {
-                directory=NameOfNewXML(a, directorySave);
-                if(directory!="")
-                xmlWrite();
+                directory = NameOfNewXML(a, directorySave);
+                Error.count = 0;
+                if (directory != "")
+                    xmlWrite();
             }
 
         }
@@ -777,14 +942,14 @@ namespace ConsoleApp1
         static public string GetCommand_122(string strTic, StreamReader streamReader, Fw16Log fw16Log)
         {
             var obj = fw16Log.Environment.Ecr;
-            if(!obj.setFirmware)
-            if ((StringOrError(strTic, streamReader, obj)) != null)
-            {
-                strTic = streamReader.ReadLine();
-                obj.firmware = ((Regex.Match(strTic, @" value=([\w]*)").Groups[1]).ToString());
-                obj.setFirmware = true;
-                return strTic;
-            }
+            if (!obj.setFirmware)
+                if ((StringOrError(strTic, streamReader, obj)) != null)
+                {
+                    strTic = streamReader.ReadLine();
+                    obj.firmware = ((Regex.Match(strTic, @" value=([\w]*)").Groups[1]).ToString());
+                    obj.setFirmware = true;
+                    return strTic;
+                }
             return null;
         }
 
@@ -853,7 +1018,7 @@ namespace ConsoleApp1
             catch { }
             if ((strTic = StringOrError(strTic, streamReader, obj)) != null)
             {
-               
+
                 obj.closed = ((Regex.Match(strTic, @"([\d:]*.[\d]*) Код").Groups[1]).ToString());
                 return strTic;
             }
@@ -869,7 +1034,7 @@ namespace ConsoleApp1
         /// <returns></returns>
         static public string GetCommand_402(string strTic, StreamReader streamReader, Fw16Log fw16Log)
         {
-             if (fw16Log.currentShift().Documents == null)
+            if (fw16Log.currentShift().Documents == null)
                 fw16Log.currentShift().Documents = new Documents();
             var obj = fw16Log.currentShift().Documents.currentReceipt();
             if (obj != null)
@@ -879,7 +1044,7 @@ namespace ConsoleApp1
                 }
             obj = fw16Log.currentShift().Documents.NExtReceipt();
             obj.end = false;
-            obj.dtStart = ((Regex.Match(strTic, @"\d+:\d+:\d+\.\d+")).ToString());
+            obj.dtStart = ((Regex.Match(strTic, REGTime)).ToString());
             strTic = streamReader.ReadLine();
             strTic = streamReader.ReadLine();
             obj.sign = ((Regex.Match(strTic, @"Operation=(\w+)").Groups[1]).ToString());
@@ -910,14 +1075,14 @@ namespace ConsoleApp1
                     strTic = streamReader.ReadLine();
                     strTic = streamReader.ReadLine();
                     strTic = streamReader.ReadLine();
-                    obj.total = Convert.ToDecimal((Regex.Match(strTic, @"Total=([0-9,]*)").Groups[1]).ToString());
-                    strTic = StringOrError(strTic, streamReader, obj);                    
+                    obj.total = Convert.ToDecimal((Regex.Match(strTic, @"Total=([0-9,.]*)").Groups[1]).ToString().Replace(".", ","));
+                    strTic = StringOrError(strTic, streamReader, obj);
                 }
-            return null;
+                return null;
             }
             catch
             {
-                fw16Log.NExtError().dt= ((Regex.Match(strTic, REGTime)).ToString());
+                fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
                 fw16Log.currentError().Message = "Поврежденный лог!(403)";
                 return null;
             }
@@ -947,7 +1112,7 @@ namespace ConsoleApp1
                             fw16Log.currentShift().Summary.Income.electron += obj.electron;
                             break;
                         case "IncomeBack":
-                             if (fw16Log.currentShift().Summary.IncomeBack == null) fw16Log.currentShift().Summary.IncomeBack = new IncomeBack();
+                            if (fw16Log.currentShift().Summary.IncomeBack == null) fw16Log.currentShift().Summary.IncomeBack = new IncomeBack();
                             fw16Log.currentShift().Summary.IncomeBack.cash += obj.cash;
                             fw16Log.currentShift().Summary.IncomeBack.electron += obj.electron;
                             break;
@@ -966,6 +1131,41 @@ namespace ConsoleApp1
                     }
                     fw16Log.currentShift().Summary.fdСount += 1;
                     return strTic;
+                }
+                else
+                {
+                    if (obj.currentError().code == "9")
+                    {
+                        obj.dtEnd = obj.currentError().dt;
+                        if (fw16Log.currentShift().Summary == null) fw16Log.currentShift().Summary = new Summary();
+                        switch (obj.sign)
+                        {
+                            case "Income":
+                                if (fw16Log.currentShift().Summary.Income == null) fw16Log.currentShift().Summary.Income = new Income();
+                                fw16Log.currentShift().Summary.Income.cash += obj.cash;
+                                fw16Log.currentShift().Summary.Income.electron += obj.electron;
+                                break;
+                            case "IncomeBack":
+                                if (fw16Log.currentShift().Summary.IncomeBack == null) fw16Log.currentShift().Summary.IncomeBack = new IncomeBack();
+                                fw16Log.currentShift().Summary.IncomeBack.cash += obj.cash;
+                                fw16Log.currentShift().Summary.IncomeBack.electron += obj.electron;
+                                break;
+                            case "OutcomeBack":
+                                if (fw16Log.currentShift().Summary.OutcomeBack == null) fw16Log.currentShift().Summary.OutcomeBack = new OutcomeBack();
+                                fw16Log.currentShift().Summary.OutcomeBack.cash += obj.cash;
+                                fw16Log.currentShift().Summary.OutcomeBack.electron += obj.electron;
+                                break;
+                            case "Outcome":
+                                if (fw16Log.currentShift().Summary.Outcome == null) fw16Log.currentShift().Summary.Outcome = new Outcome();
+                                fw16Log.currentShift().Summary.Outcome.cash += obj.cash;
+                                fw16Log.currentShift().Summary.Outcome.electron += obj.electron;
+                                break;
+                            default:
+                                break;
+                        }
+                        fw16Log.currentShift().Summary.fdСount += 1;
+                        return strTic;
+                    }
                 }
                 return null;
             }
@@ -1017,7 +1217,7 @@ namespace ConsoleApp1
                 }
                 return null;
             }
-            catch(Exception ex)
+            catch
             {
                 fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
                 fw16Log.currentError().Message = "Поврежденный лог!(408b) Закрыт документ без открытия";
@@ -1035,11 +1235,44 @@ namespace ConsoleApp1
         static public string GetCommand_420(string strTic, StreamReader streamReader, Fw16Log fw16Log)
         {
             if (fw16Log.currentShift().Documents == null) fw16Log.currentShift().Documents = new Documents();
-            fw16Log.currentShift().Documents.NExtNonfiscal().dtStart= ((Regex.Match(strTic, REGTime)).ToString());
+            fw16Log.currentShift().Documents.NExtNonfiscal().dtStart = ((Regex.Match(strTic, REGTime)).ToString());
             fw16Log.currentShift().Documents.currentDoc = "Nonfiscal";
             strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentNonfiscal());
             return null;
         }
+
+        /// <summary>
+        /// Открыть нефискальный документ
+        /// </summary>
+        /// <param name="strTic">строка из потока</param>
+        /// <param name="streamReader">поток</param>
+        /// <param name="obj">текущий объект для Serialize</param>
+        /// <returns></returns>
+        static public string GetCommand_413(string strTic, StreamReader streamReader, Fw16Log fw16Log)
+        {
+            try
+            {
+                var curentCORRDOC = fw16Log.currentShift().Documents.NExtCORRDOC();
+                curentCORRDOC.dtStart = Regex.Match(strTic, REGTime).ToString();
+                streamReader.ReadLine();
+                curentCORRDOC.sign = Regex.Match((strTic = streamReader.ReadLine()), "Income|Outcome").ToString();
+                curentCORRDOC.Taxation = Regex.Match((strTic = streamReader.ReadLine()), "=(.)").Groups[1].ToString();
+                streamReader.ReadLine();
+                curentCORRDOC.total = GetDecimalAmount(streamReader.ReadLine());
+                curentCORRDOC.cash = GetDecimalAmount(streamReader.ReadLine());
+                curentCORRDOC.electron = GetDecimalAmount(streamReader.ReadLine());
+                curentCORRDOC.dtEnd = Regex.Match(strTic, REGTime).ToString();
+                if ((strTic = StringOrError(strTic, streamReader, curentCORRDOC)) != null)
+                    curentCORRDOC.dtEnd = Regex.Match(strTic, REGTime).ToString();
+            }
+            catch
+            {
+                fw16Log.NExtError().dt = Regex.Match(strTic, REGTime).ToString();
+                fw16Log.currentError().text = "Ошибка во время обработки (413)";
+            }
+            return null;
+        }
+
         /// <summary>
         /// Закрыть нефискальный документ
         /// </summary>
@@ -1092,9 +1325,8 @@ namespace ConsoleApp1
                 fw16Log.currentError().Message = "Поврежденный лог!(407)";
                 return null;
             }
-            return null;
         }
-                
+
         /// <summary>
         /// Получение оплаты
         /// </summary>
@@ -1113,20 +1345,20 @@ namespace ConsoleApp1
                     strTic = streamReader.ReadLine();
                     if (fw16Log.currentShift().Documents.currentDoc == "Nonfiscal")
                     {
-                        fw16Log.currentShift().Documents.currentNonfiscal().cash += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                        fw16Log.currentShift().Documents.currentNonfiscal().cash += GetDecimalAmount(strTic);
                         if ((strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentNonfiscal())) != null)
                         {
                             strTic = streamReader.ReadLine();
-                            fw16Log.currentShift().Documents.currentNonfiscal().cash+= Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString()) > 0 ? 0 : Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString());
+                            fw16Log.currentShift().Documents.currentNonfiscal().cash += GetDecimalAmount(strTic) > 0 ? 0 : GetDecimalAmount(strTic);
                         }
                     }
                     if (fw16Log.currentShift().Documents.currentDoc == "Receipt")
                     {
-                        fw16Log.currentShift().Documents.currentReceipt().cash += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                        fw16Log.currentShift().Documents.currentReceipt().cash += GetDecimalAmount(strTic);
                         if ((strTic = StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentReceipt())) != null)
                         {
                             strTic = streamReader.ReadLine();
-                            fw16Log.currentShift().Documents.currentReceipt().cash += Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString())>0 ? 0 : Convert.ToDecimal(Regex.Match(strTic, @"[=|-]([-0-9,]+)").Groups[1].ToString());
+                            fw16Log.currentShift().Documents.currentReceipt().cash += GetDecimalAmount(strTic) > 0 ? 0 : GetDecimalAmount(strTic);
                         }
                     }
                 }
@@ -1135,11 +1367,13 @@ namespace ConsoleApp1
                     strTic = streamReader.ReadLine();
                     if (fw16Log.currentShift().Documents.currentDoc == "Nonfiscal")
                     {
-                        fw16Log.currentShift().Documents.currentNonfiscal().electron += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                        fw16Log.currentShift().Documents.currentNonfiscal().electron += GetDecimalAmount(strTic);
+                        StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentNonfiscal());
                     }
                     if (fw16Log.currentShift().Documents.currentDoc == "Receipt")
                     {
-                        fw16Log.currentShift().Documents.currentReceipt().electron += Convert.ToDecimal(Regex.Match(strTic, "[Amount=]([0-9,]+)").Groups[1].ToString());
+                        fw16Log.currentShift().Documents.currentReceipt().electron += GetDecimalAmount(strTic);
+                        StringOrError(strTic, streamReader, fw16Log.currentShift().Documents.currentReceipt());
                     }
                 }
                 return strTic;
@@ -1149,12 +1383,25 @@ namespace ConsoleApp1
                 fw16Log.NExtError().dt = ((Regex.Match(strTic, REGTime)).ToString());
                 fw16Log.currentError().Message = "Поврежденный лог!(409)";
                 return null;
-            }            
+            }
         }
-        
+        /// <summary>
+        /// Возврат decimal числа после знака равно из строки
+        /// </summary>
+        /// <param name="strTic">строка</param>
+        /// <returns></returns>
+        static decimal GetDecimalAmount(string strTic)
+        {
+            decimal Amount;
+            Amount = Convert.ToDecimal(Regex.Match(strTic, "[=|-]([-0-9,.]+)").Groups[1].ToString().Replace(".", ","));
+            return Amount;
+        }
+
+
+
         static void Main(string[] args)
         {
-            string fileName="";                                       // получить путь к файлу
+            string fileName = "";                                       // получить путь к файлу
             //Обработка аргументов
             switch (args.Length)
             {
@@ -1190,8 +1437,8 @@ namespace ConsoleApp1
             //обработка консольного режима
             while (fileName != "")                                               //зацикливание
             {
-            Console.Write("\nУкажите путь к файлу: ");
-            fileName = Console.ReadLine();
+                Console.Write("\nУкажите путь к файлу: ");
+                fileName = Console.ReadLine();
                 //Тестовый вариант пути к логам
                 switch (fileName)
                 {
@@ -1204,7 +1451,7 @@ namespace ConsoleApp1
                         try
                         {
                             FileStream fileStream;
-                            fileStream=File.OpenRead("TESTDEFOLT.log");
+                            fileStream = File.OpenRead("TESTDEFOLT.log");
                             fileStream.Close();
                         }
                         catch
@@ -1216,13 +1463,13 @@ namespace ConsoleApp1
                                 Console.WriteLine("Введите путь к файлу .log");
                                 try
                                 {
-                                    File.Copy(Regex.Replace(Console.ReadLine(), "\"", "") ,(Directory.GetCurrentDirectory()+"\\TESTDEFOLT.log"),true);
+                                    File.Copy(Regex.Replace(Console.ReadLine(), "\"", ""), (Directory.GetCurrentDirectory() + "\\TESTDEFOLT.log"), true);
                                     flag = false;
                                 }
-                                catch { Console.Clear();  Console.WriteLine("не верный путь");}
+                                catch { Console.Clear(); Console.WriteLine("не верный путь"); }
                             }
                         }
-                        directory= NameOfNewXML("TESTDEFOLT.log");
+                        directory = NameOfNewXML("TESTDEFOLT.log");
                         break;
                     case "removeDefolt":
                         try { File.Delete("TESTDEFOLT.log"); } catch { }
@@ -1232,7 +1479,7 @@ namespace ConsoleApp1
                         nameXML = @"save/testTree.xml";
                         break;
                     default:
-                        if (Directory.Exists( fileName=Regex.Replace(fileName, "\"", "")) && !File.Exists(fileName))
+                        if (Directory.Exists(fileName = Regex.Replace(fileName, "\"", "")) && !File.Exists(fileName))
                             XMLWhileNotEnd(fileName);
                         else
                         {
@@ -1240,9 +1487,9 @@ namespace ConsoleApp1
                             xmlWrite();
                         }
                         break;
-                } 
-                
-                
+                }
+
+
                 if (fileName == "defTest")            //тестирование и пример того как должно работать
                 {
 
@@ -1264,7 +1511,7 @@ namespace ConsoleApp1
                         {
                             fw16Log.currentShift().Documents.NExtReceipt().dtStart = "2018-01-18T09:06:01";
                             fw16Log.currentShift().Documents.currentReceipt().dtEnd = "never";
-                            fw16Log.currentShift().Documents.currentReceipt().electron =100;
+                            fw16Log.currentShift().Documents.currentReceipt().electron = 100;
                             fw16Log.currentShift().Documents.currentReceipt().cash = 150;
                             fw16Log.currentShift().Documents.currentReceipt().fiscal = "test";
                             fw16Log.currentShift().Documents.currentReceipt().itemСount = 1500;
@@ -1293,7 +1540,7 @@ namespace ConsoleApp1
                 }
                 //КОНЕЦ тестирования
 
-                if(fileName == "def")
+                if (fileName == "def")
                 {
                     xmlWrite();
                 }
@@ -1304,13 +1551,13 @@ namespace ConsoleApp1
                     tree tree = new tree();
                     decimal progress = 1;
                     Console.WriteLine("[||||||||||||||||||||Обработка|||||||||||||||||||]");
-                    string str=null;
+                    string str = null;
                     int count = 0;
                     {
                         string strTic, typeCod;
                         while ((strTic = streamReader.ReadLine()) != null)
                         {
-                            progress= progresprogressbar(streamReader, progress);
+                            progress = progresprogressbar(streamReader, progress);
                             if (strTic.IndexOf("Команда FW16: [") <= 0)
                                 typeCod = null;
                             else
@@ -1318,14 +1565,14 @@ namespace ConsoleApp1
                                 typeCod = strTic.Remove(0, strTic.IndexOf("Команда FW16: [") + 15);  //15-кол-во символов искомой строки
                                 typeCod = typeCod.Remove(3);
                             }
-                            if (typeCod != null&& typeCod !="128")
+                            if (typeCod != null && typeCod != "128")
                             {
                                 if (str == typeCod) count++;
                                 else { str = typeCod; count = 0; }
-                                tree.NExtbranch().branch = strTic+"   повторение команды №"+count;
-                               // Console.WriteLine(strTic);
+                                tree.NExtbranch().branch = strTic + "   повторение команды №" + count;
+                                // Console.WriteLine(strTic);
                             }
-                                    
+
                         }
                     }
                     {
